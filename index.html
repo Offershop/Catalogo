@@ -1,3 +1,190 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
+    <title>CloudOfferShop - Catálogo de Productos</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body {
+            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+            background: #f5f5f5;
+            padding-bottom: 80px;
+        }
+        .header {
+            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
+            color: white;
+            padding: 16px;
+            position: sticky;
+            top: 0;
+            z-index: 100;
+        }
+        h1 { font-size: 1.3rem; margin-bottom: 12px; }
+        .search-box {
+            width: 100%;
+            padding: 12px;
+            font-size: 16px;
+            border: none;
+            border-radius: 8px;
+            margin-bottom: 10px;
+        }
+        .filters {
+            display: flex;
+            gap: 8px;
+            overflow-x: auto;
+            padding: 8px 0;
+        }
+        .filter-select {
+            padding: 6px 12px;
+            border: none;
+            border-radius: 20px;
+            background: rgba(255,255,255,0.2);
+            color: white;
+            font-size: 13px;
+            cursor: pointer;
+        }
+        .container {
+            max-width: 1200px;
+            margin: 0 auto;
+            padding: 16px;
+        }
+        .products-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
+            gap: 16px;
+        }
+        .product-card {
+            background: white;
+            border-radius: 12px;
+            overflow: hidden;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
+            cursor: pointer;
+            transition: transform 0.2s;
+        }
+        .product-card:hover { transform: translateY(-2px); }
+        .product-image {
+            width: 100%;
+            height: 200px;
+            object-fit: cover;
+            background: #f0f0f0;
+        }
+        .product-info { padding: 12px; }
+        .product-title {
+            font-size: 0.95rem;
+            font-weight: 600;
+            color: #333;
+            margin-bottom: 4px;
+        }
+        .product-code { font-size: 0.7rem; color: #888; margin-bottom: 8px; }
+        .prices { margin: 8px 0; }
+        .price-item {
+            display: inline-block;
+            background: #e8f4f8;
+            padding: 4px 8px;
+            border-radius: 6px;
+            font-size: 0.8rem;
+            margin: 2px;
+        }
+        .price-emprendedor { background: #ff9800; color: white; font-weight: bold; }
+        .badge {
+            background: #e9ecef;
+            padding: 2px 8px;
+            border-radius: 4px;
+            font-size: 0.7rem;
+        }
+        .whatsapp-float {
+            position: fixed;
+            bottom: 20px;
+            right: 20px;
+            background: #25D366;
+            color: white;
+            width: 55px;
+            height: 55px;
+            border-radius: 50%;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            font-size: 28px;
+            text-decoration: none;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
+        }
+        .loading { text-align: center; padding: 40px; color: #666; }
+        .no-results { text-align: center; padding: 40px; color: #666; grid-column: 1 / -1; }
+        .error-box {
+            background: #fee;
+            color: #c00;
+            padding: 16px;
+            border-radius: 8px;
+            margin: 16px;
+            border: 1px solid #fcc;
+            white-space: pre-wrap;
+            font-family: monospace;
+            font-size: 12px;
+        }
+        .debug-info {
+            background: #f0f0f0;
+            padding: 12px;
+            margin: 16px;
+            border-radius: 8px;
+            font-size: 12px;
+            font-family: monospace;
+            display: none;
+        }
+        .modal {
+            display: none;
+            position: fixed;
+            top: 0;
+            left: 0;
+            width: 100%;
+            height: 100%;
+            background: rgba(0,0,0,0.9);
+            z-index: 1000;
+            justify-content: center;
+            align-items: center;
+        }
+        .modal.active { display: flex; }
+        .modal-content { max-width: 90%; max-height: 90%; position: relative; }
+        .modal-image { max-width: 100%; max-height: 80vh; border-radius: 8px; }
+        .modal-close {
+            position: absolute;
+            top: -40px;
+            right: 0;
+            color: white;
+            font-size: 30px;
+            cursor: pointer;
+            background: none;
+            border: none;
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <h1>🛍️ CloudOfferShop</h1>
+        <input type="text" id="searchInput" class="search-box" placeholder="🔍 Buscar por nombre, código o código de barras...">
+        <div class="filters">
+            <select id="filterLinea" class="filter-select"><option value="">Todas las líneas</option></select>
+            <select id="filterSubLinea" class="filter-select"><option value="">Todas las sublíneas</option></select>
+            <select id="filterGenero" class="filter-select"><option value="">Todos los géneros</option></select>
+        </div>
+    </div>
+    
+    <div class="container">
+        <div id="loading" class="loading">📦 Cargando catálogo...</div>
+        <div id="productsGrid" class="products-grid"></div>
+        <div id="errorBox" class="error-box" style="display:none;"></div>
+        <div id="debugInfo" class="debug-info"></div>
+    </div>
+    
+    <a href="https://wa.me/584143127644" class="whatsapp-float" target="_blank">💬</a>
+    
+    <div id="imageModal" class="modal">
+        <div class="modal-content">
+            <button class="modal-close" onclick="closeModal()">✕</button>
+            <img id="modalImage" class="modal-image" src="" alt="">
+        </div>
+    </div>
+
+    <script>
         // ========== CONFIGURACIÓN ==========
         const GAS_URL = "https://script.google.com/macros/s/AKfycbw4fJGzFlbMb72uvZIZuxLDjVnqmjReJn77u-TCKOcF9htxhcvth3jGb7afPHvxaen5/exec";
         
@@ -109,8 +296,7 @@
             productsGrid.innerHTML = filtered.map(p => {
                 const tieneFotos = (p.fotosSecundarias?.length || 0) + (p.imagenPrincipal ? 1 : 0);
                 const imagenSrc = p.imagenPrincipal || 'https://via.placeholder.com/300x200?text=Sin+imagen';
-                // Usar data attribute en lugar de onclick con string para evitar problemas de escaping
-                const codSafe = p.cod; // ya es string
+                const codSafe = p.cod;
                 return `
                     <div class="product-card" data-cod="${escapeAttr(codSafe)}">
                         <img class="product-image" src="${imagenSrc}" 
@@ -133,7 +319,6 @@
                 `;
             }).join('');
             
-            // Agregar event listeners a las tarjetas después de renderizar
             document.querySelectorAll('.product-card').forEach(card => {
                 card.removeEventListener('click', cardClickHandler);
                 card.addEventListener('click', cardClickHandler);
@@ -141,7 +326,6 @@
         }
         
         function cardClickHandler(e) {
-            // Evitar que el click en elementos internos cierre el modal sin querer
             if (e.target.closest('.product-card')) {
                 const cod = this.getAttribute('data-cod');
                 openGallery(cod);
@@ -168,8 +352,6 @@
                 if (m === '<') return '&lt;';
                 if (m === '>') return '&gt;';
                 return m;
-            }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(c) {
-                return c;
             });
         }
         
@@ -187,3 +369,6 @@
         
         // Iniciar
         loadProducts();
+    </script>
+</body>
+</html>
