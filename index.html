@@ -1,193 +1,4 @@
-<!DOCTYPE html>
-<html lang="es">
-<head>
-    <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>CloudOfferShop - Catálogo</title>
-    <style>
-        * { margin: 0; padding: 0; box-sizing: border-box; }
-        body {
-            font-family: system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-            background: #f5f5f5;
-            padding-bottom: 80px;
-        }
-        .header {
-            background: linear-gradient(135deg, #1e3c72 0%, #2a5298 100%);
-            color: white;
-            padding: 16px;
-            position: sticky;
-            top: 0;
-            z-index: 100;
-        }
-        h1 { font-size: 1.3rem; margin-bottom: 12px; }
-        .search-box {
-            width: 100%;
-            padding: 12px;
-            font-size: 16px;
-            border: none;
-            border-radius: 8px;
-            margin-bottom: 10px;
-        }
-        .filters {
-            display: flex;
-            gap: 8px;
-            overflow-x: auto;
-            padding: 8px 0;
-        }
-        .filter-select {
-            padding: 6px 12px;
-            border: none;
-            border-radius: 20px;
-            background: rgba(255,255,255,0.2);
-            color: white;
-            font-size: 13px;
-            cursor: pointer;
-        }
-        .container {
-            max-width: 1200px;
-            margin: 0 auto;
-            padding: 16px;
-        }
-        .products-grid {
-            display: grid;
-            grid-template-columns: repeat(auto-fill, minmax(280px, 1fr));
-            gap: 16px;
-        }
-        .product-card {
-            background: white;
-            border-radius: 12px;
-            overflow: hidden;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.08);
-            cursor: pointer;
-            transition: transform 0.2s;
-        }
-        .product-card:hover { transform: translateY(-2px); }
-        .product-image {
-            width: 100%;
-            height: 200px;
-            object-fit: cover;
-            background: #f0f0f0;
-        }
-        .product-info { padding: 12px; }
-        .product-title {
-            font-size: 0.95rem;
-            font-weight: 600;
-            color: #333;
-            margin-bottom: 4px;
-        }
-        .product-code { font-size: 0.7rem; color: #888; margin-bottom: 8px; }
-        .prices { margin: 8px 0; }
-        .price-item {
-            display: inline-block;
-            background: #e8f4f8;
-            padding: 4px 8px;
-            border-radius: 6px;
-            font-size: 0.8rem;
-            margin: 2px;
-        }
-        .price-emprendedor { background: #ff9800; color: white; font-weight: bold; }
-        .badge {
-            background: #e9ecef;
-            padding: 2px 8px;
-            border-radius: 4px;
-            font-size: 0.7rem;
-        }
-        .whatsapp-float {
-            position: fixed;
-            bottom: 20px;
-            right: 20px;
-            background: #25D366;
-            color: white;
-            width: 55px;
-            height: 55px;
-            border-radius: 50%;
-            display: flex;
-            align-items: center;
-            justify-content: center;
-            font-size: 28px;
-            text-decoration: none;
-            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
-        }
-        .loading { text-align: center; padding: 40px; color: #666; }
-        .no-results { text-align: center; padding: 40px; color: #666; grid-column: 1 / -1; }
-        .error-box {
-            background: #fee;
-            color: #c00;
-            padding: 16px;
-            border-radius: 8px;
-            margin: 16px;
-            border: 1px solid #fcc;
-            white-space: pre-wrap;
-            font-family: monospace;
-            font-size: 12px;
-        }
-        .debug-info {
-            background: #f0f0f0;
-            padding: 12px;
-            margin: 16px;
-            border-radius: 8px;
-            font-size: 12px;
-            font-family: monospace;
-            display: none;
-        }
-        /* Modal simple */
-        .modal {
-            display: none;
-            position: fixed;
-            top: 0;
-            left: 0;
-            width: 100%;
-            height: 100%;
-            background: rgba(0,0,0,0.9);
-            z-index: 1000;
-            justify-content: center;
-            align-items: center;
-        }
-        .modal.active { display: flex; }
-        .modal-content { max-width: 90%; max-height: 90%; position: relative; }
-        .modal-image { max-width: 100%; max-height: 80vh; border-radius: 8px; }
-        .modal-close {
-            position: absolute;
-            top: -40px;
-            right: 0;
-            color: white;
-            font-size: 30px;
-            cursor: pointer;
-            background: none;
-            border: none;
-        }
-    </style>
-</head>
-<body>
-    <div class="header">
-        <h1>🛍️ CloudOfferShop</h1>
-        <input type="text" id="searchInput" class="search-box" placeholder="🔍 Buscar por nombre, código o código de barras...">
-        <div class="filters">
-            <select id="filterLinea" class="filter-select"><option value="">Todas las líneas</option></select>
-            <select id="filterSubLinea" class="filter-select"><option value="">Todas las sublíneas</option></select>
-            <select id="filterGenero" class="filter-select"><option value="">Todos los géneros</option></select>
-        </div>
-    </div>
-    
-    <div class="container">
-        <div id="loading" class="loading">📦 Cargando catálogo...</div>
-        <div id="productsGrid" class="products-grid"></div>
-        <div id="errorBox" class="error-box" style="display:none;"></div>
-        <div id="debugInfo" class="debug-info"></div>
-    </div>
-    
-    <a href="https://wa.me/584143127644" class="whatsapp-float" target="_blank">💬</a>
-    
-    <div id="imageModal" class="modal">
-        <div class="modal-content">
-            <button class="modal-close" onclick="closeModal()">✕</button>
-            <img id="modalImage" class="modal-image" src="" alt="">
-        </div>
-    </div>
-
-    <script>
         // ========== CONFIGURACIÓN ==========
-        // ¡¡¡REEMPLAZA ESTA URL CON LA DE TU APPS SCRIPT!!!
         const GAS_URL = "https://script.google.com/macros/s/AKfycbw4fJGzFlbMb72uvZIZuxLDjVnqmjReJn77u-TCKOcF9htxhcvth3jGb7afPHvxaen5/exec";
         
         let allProducts = [];
@@ -202,100 +13,71 @@
         const errorBox = document.getElementById('errorBox');
         const debugInfo = document.getElementById('debugInfo');
         
-        // Función para mostrar logs en la página (opcional)
         function addLog(message, type = 'info') {
             console.log(`[${type.toUpperCase()}]`, message);
-            const debugContent = debugInfo.innerHTML;
-            debugInfo.innerHTML = debugContent + `\n${new Date().toLocaleTimeString()}: ${message}`;
-            debugInfo.style.display = 'block';
-            // Auto cerrar después de 30 segundos si no hay error
-            if (type !== 'error') {
-                setTimeout(() => {
-                    if (debugInfo.style.display === 'block') debugInfo.style.display = 'none';
-                }, 30000);
+            if (debugInfo) {
+                debugInfo.innerHTML += `\n${new Date().toLocaleTimeString()}: ${message}`;
+                debugInfo.style.display = 'block';
+                if (type !== 'error') {
+                    setTimeout(() => { if (debugInfo) debugInfo.style.display = 'none'; }, 30000);
+                }
             }
         }
         
         async function loadProducts() {
-            addLog("Iniciando carga de productos...");
+            addLog("Iniciando carga...");
             loadingDiv.style.display = 'block';
             productsGrid.innerHTML = '';
-            errorBox.style.display = 'none';
+            if (errorBox) errorBox.style.display = 'none';
             
             try {
-                addLog(`Fetching URL: ${GAS_URL}`);
                 const response = await fetch(GAS_URL);
-                addLog(`Respuesta recibida. Status: ${response.status} ${response.statusText}`);
-                
-                if (!response.ok) {
-                    throw new Error(`HTTP ${response.status}: ${response.statusText}`);
-                }
+                if (!response.ok) throw new Error(`HTTP ${response.status}`);
                 
                 const data = await response.json();
-                addLog(`Datos parseados. Tipo: ${typeof data}, ¿tiene productos? ${!!data.productos}`);
-                addLog(`Contenido completo (primeros 200 chars): ${JSON.stringify(data).substring(0, 200)}`);
+                addLog(`Datos recibidos, productos: ${data.productos?.length || 0}`);
                 
-                if (data.error) {
-                    throw new Error(`API Error: ${data.error}`);
-                }
-                
-                if (!data.productos || !Array.isArray(data.productos)) {
-                    throw new Error(`La respuesta no contiene un array 'productos'. Recibido: ${typeof data.productos}`);
-                }
+                if (data.error) throw new Error(data.error);
+                if (!data.productos || !Array.isArray(data.productos)) throw new Error("Formato inválido");
                 
                 allProducts = data.productos;
-                addLog(`Se cargaron ${allProducts.length} productos.`);
-                
                 if (allProducts.length === 0) {
-                    addLog("ADVERTENCIA: No hay productos en la respuesta.", "warn");
-                    productsGrid.innerHTML = '<div class="no-results">⚠️ No se encontraron productos activos</div>';
-                    loadingDiv.style.display = 'none';
+                    productsGrid.innerHTML = '<div class="no-results">⚠️ No hay productos activos</div>';
                     return;
                 }
                 
-                // Mostrar ejemplo del primer producto
-                addLog(`Primer producto: ${JSON.stringify(allProducts[0])}`);
+                // CONVERTIR COD A STRING PARA EVITAR ERRORES
+                allProducts = allProducts.map(p => ({ ...p, cod: String(p.cod) }));
                 
                 populateFilters();
                 renderProducts();
                 
             } catch (error) {
                 addLog(`ERROR: ${error.message}`, "error");
-                console.error(error);
-                errorBox.innerHTML = `<strong>❌ Error al cargar productos:</strong><br>${error.message}<br><br>
-                                      <strong>Posibles causas:</strong><br>
-                                      - La URL de Apps Script es incorrecta o no está desplegada.<br>
-                                      - El script de Apps Script no devuelve JSON válido.<br>
-                                      - CORS o permisos: el script debe ejecutarse como "Cualquier persona".<br>
-                                      - La hoja "INVENTARIO PARA LA WEB" no existe o no tiene datos.<br>
-                                      <br>
-                                      <strong>Verifica en la consola del navegador (F12) más detalles.</strong>`;
-                errorBox.style.display = 'block';
+                if (errorBox) {
+                    errorBox.innerHTML = `<strong>❌ Error:</strong> ${error.message}<br>Ver consola F12`;
+                    errorBox.style.display = 'block';
+                }
             } finally {
                 loadingDiv.style.display = 'none';
             }
         }
         
         function populateFilters() {
-            addLog("Generando filtros...");
             const lineas = new Set();
             const subLineas = new Set();
             const generos = new Set();
-            
             allProducts.forEach(p => {
-                if (p.linea && p.linea.trim()) lineas.add(p.linea);
-                if (p.subLinea && p.subLinea.trim()) subLineas.add(p.subLinea);
-                if (p.genero && p.genero.trim()) generos.add(p.genero);
+                if (p.linea) lineas.add(p.linea);
+                if (p.subLinea) subLineas.add(p.subLinea);
+                if (p.genero) generos.add(p.genero);
             });
-            
             filterLinea.innerHTML = '<option value="">Todas las líneas</option>' + 
-                Array.from(lineas).sort().map(l => `<option value="${l.replace(/"/g, '&quot;')}">${l}</option>`).join('');
+                Array.from(lineas).sort().map(l => `<option value="${escapeAttr(l)}">${l}</option>`).join('');
             filterSubLinea.innerHTML = '<option value="">Todas las sublíneas</option>' + 
-                Array.from(subLineas).sort().map(sl => `<option value="${sl.replace(/"/g, '&quot;')}">${sl}</option>`).join('');
+                Array.from(subLineas).sort().map(sl => `<option value="${escapeAttr(sl)}">${sl}</option>`).join('');
             filterGenero.innerHTML = '<option value="">Todos los géneros</option>' + 
-                Array.from(generos).sort().map(g => `<option value="${g.replace(/"/g, '&quot;')}">${g}</option>`).join('');
-            
-            addLog(`Filtros generados: ${lineas.size} líneas, ${subLineas.size} sublíneas, ${generos.size} géneros.`);
+                Array.from(generos).sort().map(g => `<option value="${escapeAttr(g)}">${g}</option>`).join('');
         }
         
         function filterProducts() {
@@ -303,7 +85,6 @@
             const linea = filterLinea.value;
             const subLinea = filterSubLinea.value;
             const genero = filterGenero.value;
-            
             return allProducts.filter(p => {
                 let matchSearch = true;
                 if (searchTerm) {
@@ -320,8 +101,6 @@
         
         function renderProducts() {
             const filtered = filterProducts();
-            addLog(`Renderizando ${filtered.length} productos (filtrados de ${allProducts.length})`);
-            
             if (filtered.length === 0) {
                 productsGrid.innerHTML = '<div class="no-results">😕 No se encontraron productos</div>';
                 return;
@@ -330,10 +109,12 @@
             productsGrid.innerHTML = filtered.map(p => {
                 const tieneFotos = (p.fotosSecundarias?.length || 0) + (p.imagenPrincipal ? 1 : 0);
                 const imagenSrc = p.imagenPrincipal || 'https://via.placeholder.com/300x200?text=Sin+imagen';
+                // Usar data attribute en lugar de onclick con string para evitar problemas de escaping
+                const codSafe = p.cod; // ya es string
                 return `
-                    <div class="product-card" onclick="openGallery('${p.cod}')">
+                    <div class="product-card" data-cod="${escapeAttr(codSafe)}">
                         <img class="product-image" src="${imagenSrc}" 
-                             alt="${p.descripcion || p.cod}" 
+                             alt="${escapeHtml(p.descripcion || p.cod)}" 
                              loading="lazy"
                              onerror="this.src='https://via.placeholder.com/300x200?text=Error+imagen'">
                         <div class="product-info">
@@ -342,7 +123,7 @@
                             <div class="prices">
                                 ${(p.preciosMostrar || []).map(pr => `
                                     <span class="price-item ${pr.especial ? 'price-emprendedor' : ''}">
-                                        ${pr.label}: $${pr.value?.toFixed(2)}
+                                        ${escapeHtml(pr.label)}: $${pr.value?.toFixed(2)}
                                     </span>
                                 `).join('')}
                             </div>
@@ -351,27 +132,50 @@
                     </div>
                 `;
             }).join('');
+            
+            // Agregar event listeners a las tarjetas después de renderizar
+            document.querySelectorAll('.product-card').forEach(card => {
+                card.removeEventListener('click', cardClickHandler);
+                card.addEventListener('click', cardClickHandler);
+            });
         }
         
-        function escapeHtml(text) {
-            if (!text) return '';
-            const div = document.createElement('div');
-            div.textContent = text;
-            return div.innerHTML;
+        function cardClickHandler(e) {
+            // Evitar que el click en elementos internos cierre el modal sin querer
+            if (e.target.closest('.product-card')) {
+                const cod = this.getAttribute('data-cod');
+                openGallery(cod);
+            }
         }
         
-        // Galería simple
         function openGallery(cod) {
             const product = allProducts.find(p => p.cod == cod);
-            if (!product) return;
+            if (!product || !product.imagenPrincipal) return;
             const modal = document.getElementById('imageModal');
             const modalImage = document.getElementById('modalImage');
-            modalImage.src = product.imagenPrincipal || '';
+            modalImage.src = product.imagenPrincipal;
             modal.classList.add('active');
         }
         
         function closeModal() {
             document.getElementById('imageModal').classList.remove('active');
+        }
+        
+        function escapeHtml(str) {
+            if (!str) return '';
+            return str.replace(/[&<>]/g, function(m) {
+                if (m === '&') return '&amp;';
+                if (m === '<') return '&lt;';
+                if (m === '>') return '&gt;';
+                return m;
+            }).replace(/[\uD800-\uDBFF][\uDC00-\uDFFF]/g, function(c) {
+                return c;
+            });
+        }
+        
+        function escapeAttr(str) {
+            if (!str) return '';
+            return String(str).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
         }
         
         // Event listeners
@@ -383,6 +187,3 @@
         
         // Iniciar
         loadProducts();
-    </script>
-</body>
-</html>
