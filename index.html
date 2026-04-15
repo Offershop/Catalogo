@@ -3,7 +3,7 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0, user-scalable=yes">
-    <title>CloudOfferShop - Catálogo de Productos</title>
+    <title>CloudOfferShop - Catálogo</title>
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body {
@@ -185,12 +185,10 @@
     </div>
 
     <script>
-        // ========== CONFIGURACIÓN ==========
         const GAS_URL = "https://script.google.com/macros/s/AKfycbw4fJGzFlbMb72uvZIZuxLDjVnqmjReJn77u-TCKOcF9htxhcvth3jGb7afPHvxaen5/exec";
         
         let allProducts = [];
         
-        // Elementos DOM
         const searchInput = document.getElementById('searchInput');
         const filterLinea = document.getElementById('filterLinea');
         const filterSubLinea = document.getElementById('filterSubLinea');
@@ -200,14 +198,12 @@
         const errorBox = document.getElementById('errorBox');
         const debugInfo = document.getElementById('debugInfo');
         
-        function addLog(message, type = 'info') {
-            console.log(`[${type.toUpperCase()}]`, message);
+        function addLog(msg, type = 'info') {
+            console.log(`[${type}] ${msg}`);
             if (debugInfo) {
-                debugInfo.innerHTML += `\n${new Date().toLocaleTimeString()}: ${message}`;
+                debugInfo.innerHTML += `\n${new Date().toLocaleTimeString()}: ${msg}`;
                 debugInfo.style.display = 'block';
-                if (type !== 'error') {
-                    setTimeout(() => { if (debugInfo) debugInfo.style.display = 'none'; }, 30000);
-                }
+                if (type !== 'error') setTimeout(() => { if (debugInfo) debugInfo.style.display = 'none'; }, 30000);
             }
         }
         
@@ -215,74 +211,61 @@
             addLog("Iniciando carga...");
             loadingDiv.style.display = 'block';
             productsGrid.innerHTML = '';
-            if (errorBox) errorBox.style.display = 'none';
-            
+            errorBox.style.display = 'none';
             try {
                 const response = await fetch(GAS_URL);
                 if (!response.ok) throw new Error(`HTTP ${response.status}`);
-                
                 const data = await response.json();
-                addLog(`Datos recibidos, productos: ${data.productos?.length || 0}`);
-                
+                addLog(`Productos recibidos: ${data.productos?.length || 0}`);
                 if (data.error) throw new Error(data.error);
                 if (!data.productos || !Array.isArray(data.productos)) throw new Error("Formato inválido");
-                
                 allProducts = data.productos;
                 if (allProducts.length === 0) {
                     productsGrid.innerHTML = '<div class="no-results">⚠️ No hay productos activos</div>';
                     return;
                 }
-                
-                // CONVERTIR COD A STRING PARA EVITAR ERRORES
-                allProducts = allProducts.map(p => ({ ...p, cod: String(p.cod) }));
-                
+                // Asegurar que cod sea string y eliminar cualquier posible función replace
+                allProducts = allProducts.map(p => {
+                    return {
+                        ...p,
+                        cod: String(p.cod),
+                        listaCodigos: p.listaCodigos ? String(p.listaCodigos) : ''
+                    };
+                });
                 populateFilters();
                 renderProducts();
-                
-            } catch (error) {
-                addLog(`ERROR: ${error.message}`, "error");
-                if (errorBox) {
-                    errorBox.innerHTML = `<strong>❌ Error:</strong> ${error.message}<br>Ver consola F12`;
-                    errorBox.style.display = 'block';
-                }
+            } catch (err) {
+                addLog(`ERROR: ${err.message}`, "error");
+                errorBox.innerHTML = `<strong>❌ Error:</strong> ${err.message}<br>Ver consola F12`;
+                errorBox.style.display = 'block';
             } finally {
                 loadingDiv.style.display = 'none';
             }
         }
         
         function populateFilters() {
-            const lineas = new Set();
-            const subLineas = new Set();
-            const generos = new Set();
+            const lineas = new Set(), subLineas = new Set(), generos = new Set();
             allProducts.forEach(p => {
                 if (p.linea) lineas.add(p.linea);
                 if (p.subLinea) subLineas.add(p.subLinea);
                 if (p.genero) generos.add(p.genero);
             });
-            filterLinea.innerHTML = '<option value="">Todas las líneas</option>' + 
-                Array.from(lineas).sort().map(l => `<option value="${escapeAttr(l)}">${l}</option>`).join('');
-            filterSubLinea.innerHTML = '<option value="">Todas las sublíneas</option>' + 
-                Array.from(subLineas).sort().map(sl => `<option value="${escapeAttr(sl)}">${sl}</option>`).join('');
-            filterGenero.innerHTML = '<option value="">Todos los géneros</option>' + 
-                Array.from(generos).sort().map(g => `<option value="${escapeAttr(g)}">${g}</option>`).join('');
+            filterLinea.innerHTML = '<option value="">Todas las líneas</option>' + Array.from(lineas).sort().map(l => `<option value="${escapeAttr(l)}">${l}</option>`).join('');
+            filterSubLinea.innerHTML = '<option value="">Todas las sublíneas</option>' + Array.from(subLineas).sort().map(sl => `<option value="${escapeAttr(sl)}">${sl}</option>`).join('');
+            filterGenero.innerHTML = '<option value="">Todos los géneros</option>' + Array.from(generos).sort().map(g => `<option value="${escapeAttr(g)}">${g}</option>`).join('');
         }
         
         function filterProducts() {
-            const searchTerm = searchInput.value.toLowerCase().trim();
-            const linea = filterLinea.value;
-            const subLinea = filterSubLinea.value;
-            const genero = filterGenero.value;
+            const term = searchInput.value.toLowerCase().trim();
+            const linea = filterLinea.value, subLinea = filterSubLinea.value, genero = filterGenero.value;
             return allProducts.filter(p => {
-                let matchSearch = true;
-                if (searchTerm) {
-                    matchSearch = (p.descripcion && p.descripcion.toLowerCase().includes(searchTerm)) ||
-                                 (p.cod && p.cod.toLowerCase().includes(searchTerm)) ||
-                                 (p.listaCodigos && p.listaCodigos.toLowerCase().includes(searchTerm));
+                let match = true;
+                if (term) {
+                    match = (p.descripcion && p.descripcion.toLowerCase().includes(term)) ||
+                            (p.cod && p.cod.toLowerCase().includes(term)) ||
+                            (p.listaCodigos && p.listaCodigos.toLowerCase().includes(term));
                 }
-                return matchSearch &&
-                       (!linea || p.linea === linea) &&
-                       (!subLinea || p.subLinea === subLinea) &&
-                       (!genero || p.genero === genero);
+                return match && (!linea || p.linea === linea) && (!subLinea || p.subLinea === subLinea) && (!genero || p.genero === genero);
             });
         }
         
@@ -292,33 +275,24 @@
                 productsGrid.innerHTML = '<div class="no-results">😕 No se encontraron productos</div>';
                 return;
             }
-            
             productsGrid.innerHTML = filtered.map(p => {
                 const tieneFotos = (p.fotosSecundarias?.length || 0) + (p.imagenPrincipal ? 1 : 0);
-                const imagenSrc = p.imagenPrincipal || 'https://via.placeholder.com/300x200?text=Sin+imagen';
-                const codSafe = p.cod;
+                const imgSrc = p.imagenPrincipal || 'https://via.placeholder.com/300x200?text=Sin+imagen';
+                const codStr = String(p.cod); // ya es string por el mapeo, pero por si acaso
                 return `
-                    <div class="product-card" data-cod="${escapeAttr(codSafe)}">
-                        <img class="product-image" src="${imagenSrc}" 
-                             alt="${escapeHtml(p.descripcion || p.cod)}" 
-                             loading="lazy"
-                             onerror="this.src='https://via.placeholder.com/300x200?text=Error+imagen'">
+                    <div class="product-card" data-cod="${escapeAttr(codStr)}">
+                        <img class="product-image" src="${imgSrc}" alt="${escapeHtml(p.descripcion || p.cod)}" loading="lazy" onerror="this.src='https://via.placeholder.com/300x200?text=Error+imagen'">
                         <div class="product-info">
                             <div class="product-title">${escapeHtml(p.descripcion || p.cod)}</div>
                             <div class="product-code">Código: ${p.cod}</div>
                             <div class="prices">
-                                ${(p.preciosMostrar || []).map(pr => `
-                                    <span class="price-item ${pr.especial ? 'price-emprendedor' : ''}">
-                                        ${escapeHtml(pr.label)}: $${pr.value?.toFixed(2)}
-                                    </span>
-                                `).join('')}
+                                ${(p.preciosMostrar || []).map(pr => `<span class="price-item ${pr.especial ? 'price-emprendedor' : ''}">${escapeHtml(pr.label)}: $${pr.value?.toFixed(2)}</span>`).join('')}
                             </div>
                             <div class="badge">📸 ${tieneFotos} foto${tieneFotos !== 1 ? 's' : ''}</div>
                         </div>
                     </div>
                 `;
             }).join('');
-            
             document.querySelectorAll('.product-card').forEach(card => {
                 card.removeEventListener('click', cardClickHandler);
                 card.addEventListener('click', cardClickHandler);
@@ -326,19 +300,16 @@
         }
         
         function cardClickHandler(e) {
-            if (e.target.closest('.product-card')) {
-                const cod = this.getAttribute('data-cod');
-                openGallery(cod);
-            }
+            const cod = this.getAttribute('data-cod');
+            openGallery(cod);
         }
         
         function openGallery(cod) {
             const product = allProducts.find(p => p.cod == cod);
-            if (!product || !product.imagenPrincipal) return;
-            const modal = document.getElementById('imageModal');
-            const modalImage = document.getElementById('modalImage');
-            modalImage.src = product.imagenPrincipal;
-            modal.classList.add('active');
+            if (product && product.imagenPrincipal) {
+                document.getElementById('modalImage').src = product.imagenPrincipal;
+                document.getElementById('imageModal').classList.add('active');
+            }
         }
         
         function closeModal() {
@@ -360,14 +331,12 @@
             return String(str).replace(/&/g, '&amp;').replace(/"/g, '&quot;');
         }
         
-        // Event listeners
         searchInput.addEventListener('input', () => renderProducts());
         filterLinea.addEventListener('change', () => renderProducts());
         filterSubLinea.addEventListener('change', () => renderProducts());
         filterGenero.addEventListener('change', () => renderProducts());
         document.addEventListener('keydown', (e) => { if (e.key === 'Escape') closeModal(); });
         
-        // Iniciar
         loadProducts();
     </script>
 </body>
